@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from softsvmpoly import softsvmpoly
-from utils import kernel
+from utils import kernel, decision_function
 import time
 
 ROUND_DIGITS = 5
@@ -23,8 +23,6 @@ def scatter_plot(title, x_label, y_label):
 
 def predict_calculate_error(alpha, trainX, testX, testy, k):
     """predicts the testy values and calculates the error"""
-    def decision_function(x):
-        return sum(alpha[i] * kernel(x, trainX[i], k) for i in range(len(alpha)))
     y_preds = np.array([np.sign(decision_function(x)) for x in testX])
     return np.mean(np.vstack(testy) != np.vstack(y_preds))
 
@@ -83,6 +81,33 @@ def analyze_lambda_k_values(k_f, l_values, k_values, train_x, train_y, test_x, t
     print(f'best_k={best_k}, best_l={best_l}, test_error={test_error}')
     return best_k, best_l, test_error
 
+def plot_predictor(alpha, trainX, k, number_of_points=100):
+    axis = np.linspace(-1, 1, number_of_points)
+    grid = np.array([(x1, x2) for x1 in axis for x2 in axis])
+    print(grid.shape)
+    print(trainX.shape)
+    y_preds = np.array([int(np.sign(decision_function(point, alpha, trainX, k))) for point in grid])
+    print(y_preds[:10])
+    points_blue = grid[y_preds == 1]
+    points_red = grid[y_preds == -1]
+    print(points_blue[:10])
+    plt.scatter(*zip(*points_blue), color='blue', label='y=1')
+    plt.scatter(*zip(*points_red), color='red', label='y=-1')
+    plt.title(f"Result Predictor k = {k}", fontsize=26)
+    plt.xlabel("X1", fontsize=16)
+    plt.ylabel("X2", fontsize=16)
+    plt.grid(True)
+    plt.show()
+    # plt.imshow(points_blue, color='blue')
+    # plt.imshow(points_red, color='red')
+
+def analyze_k_values(l, k_values, train_x, train_y):
+    """tests the knn algorithm for different k"""   
+    for k in k_values:     
+        alpha = softsvmpoly(l, k, train_x, train_y)
+        plot_predictor(alpha, trainX, k, 10)
+    
+
 def plot_error_bar_graph(x_values, averages, yerr, title, x_label, x_scale='linear', color='b', label='error bar'):
     """plots error bar graph with the given parameters"""
     # Plotting the graph with error bars
@@ -121,7 +146,8 @@ if __name__ == '__main__':
 
     start = time.time()
     # scatter_plot('Soft SVM Samples scatter', 'X', 'Y')
-    analyze_lambda_k_values(5, [1, 10, 100], [2, 5, 8], trainX, trainy, testX, testy)
+    # analyze_lambda_k_values(5, [1, 10, 100], [2, 5, 8], trainX, trainy, testX, testy)
+    analyze_k_values(100, [3, 5, 8], trainX, trainy)
     end = time.time()
     plt.show()
     print(f'time_to_process in seconds {end - start}')
