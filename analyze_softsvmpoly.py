@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from softsvmpoly import softsvmpoly
+from utils import kernel
 import time
 
 ROUND_DIGITS = 5
@@ -20,10 +21,10 @@ def scatter_plot(title, x_label, y_label):
     plt.ylabel(y_label, fontsize=16)
     plt.grid(True)
 
-def predict_calculate_error(w, trainX, trainy, testX, testy, k):
+def predict_calculate_error(alpha, trainX, testX, testy, k):
     """predicts the testy values and calculates the error"""
     def decision_function(x):
-        return sum(w[i] * trainy[i] * ((1 + x @ trainX[i]) ** k) for i in range(len(w)))
+        return sum(alpha[i] * kernel(x, trainX[i], k) for i in range(len(alpha)))
     y_preds = np.array([np.sign(decision_function(x)) for x in testX])
     return np.mean(np.vstack(testy) != np.vstack(y_preds))
 
@@ -43,8 +44,8 @@ def test_input_size(m: int = 200, l: int = 1, k: int = 5):
 
     w = softsvmpoly(l, k, _trainX, _trainy)
 
-    test_error = predict_calculate_error(w, trainX, trainy, testX, testy, k)
-    train_error = predict_calculate_error(w, trainX, trainy, _trainX, _trainy, k)
+    test_error = predict_calculate_error(w, trainX, testX, testy, k)
+    train_error = predict_calculate_error(w, trainX, _trainX, _trainy, k)
 
     return test_error, train_error
 
@@ -62,23 +63,23 @@ def k_fold_cross_validation(k_f: int, l: int, k: int, trainX: np.array, trainy: 
         trainX = np.concatenate([trainX_folds[j] for j in range(k_f) if j != i])
         trainy = np.concatenate([trainy_folds[j] for j in range(k_f) if j != i])
         w = softsvmpoly(l, k, trainX, trainy)
-        test_errors.append(predict_calculate_error(w, trainX, trainy, valX, valY, k))
+        test_errors.append(predict_calculate_error(w, trainX, valX, valY, k))
 
     print(f'k={k}, l={l}, test_errors={test_errors}')    
     return np.average(test_errors)
 
-def analyze_lambda_k_values(k_f, l_values, k_values, trainX, trainy, testX, testy):
+def analyze_lambda_k_values(k_f, l_values, k_values, train_x, train_y, test_x, test_y):
     """tests the knn algorithm for different k"""   
     best_k, best_l, best_error = 0, 0, 1
     for k in k_values:
         for l in l_values:
-            test_error = k_fold_cross_validation(k_f, l, k, trainX, trainy)
+            test_error = k_fold_cross_validation(k_f, l, k, train_x, train_y)
             best_error, best_k, best_l = min((best_error, best_k, best_l), (test_error, k, l), key=lambda x: x[0])
             print(f'k={k}, l={l}, test_error={test_error}')
 
-    w = softsvmpoly(best_l, best_k, trainX, trainy)
+    alpha = softsvmpoly(best_l, best_k, train_x, train_y)
 
-    test_error = predict_calculate_error(w, trainX, trainy, testX, testy, best_k)
+    test_error = predict_calculate_error(alpha, train_x, test_x, test_y, best_k)
     print(f'best_k={best_k}, best_l={best_l}, test_error={test_error}')
     return best_k, best_l, test_error
 
@@ -117,7 +118,7 @@ if __name__ == '__main__':
     testX = data['Xtest']
     trainy = data['Ytrain']
     testy = data['Ytest']
-    
+
     start = time.time()
     # scatter_plot('Soft SVM Samples scatter', 'X', 'Y')
     analyze_lambda_k_values(5, [1, 10, 100], [2, 5, 8], trainX, trainy, testX, testy)
