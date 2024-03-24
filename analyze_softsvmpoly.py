@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from softsvmpoly import softsvmpoly
 from utils import kernel, decision_function
 import time
@@ -81,32 +82,30 @@ def analyze_lambda_k_values(k_f, l_values, k_values, train_x, train_y, test_x, t
     print(f'best_k={best_k}, best_l={best_l}, test_error={test_error}')
     return best_k, best_l, test_error
 
-def plot_predictor(alpha, trainX, k, number_of_points=100):
-    axis = np.linspace(-1, 1, number_of_points)
-    grid = np.array([(x1, x2) for x1 in axis for x2 in axis])
-    print(grid.shape)
-    print(trainX.shape)
-    y_preds = np.array([int(np.sign(decision_function(point, alpha, trainX, k))) for point in grid])
-    print(y_preds[:10])
-    points_blue = grid[y_preds == 1]
-    points_red = grid[y_preds == -1]
-    print(points_blue[:10])
-    plt.scatter(*zip(*points_blue), color='blue', label='y=1')
-    plt.scatter(*zip(*points_red), color='red', label='y=-1')
+def plot_predictor(alpha, train_x, k, number_of_points=100):
+    def normalize_index(index):
+        return (2 * index / number_of_points) - 1
+    r = range(number_of_points)
+    # grid = [int(np.sign(decision_function((normalize_index(i), normalize_index(j)), alpha, train_x, k))) for i in r for j in r]
+    cmap = {1: np.array([0, 0, 255]), -1: np.array([255, 0, 0])}
+    
+    y_preds = np.zeros((number_of_points, number_of_points, 3), dtype=np.int32)
+    for i in r:
+        for j in r:
+            pred = int(np.sign(decision_function((normalize_index(j), normalize_index(i)), alpha, train_x, k)))
+            y_preds[i][j] = cmap[pred]
+    plt.imshow(y_preds, extent=(-1, 1, -1, 1), origin='lower')
     plt.title(f"Result Predictor k = {k}", fontsize=26)
     plt.xlabel("X1", fontsize=16)
     plt.ylabel("X2", fontsize=16)
     plt.grid(True)
-    plt.show()
-    # plt.imshow(points_blue, color='blue')
-    # plt.imshow(points_red, color='red')
+    plt.savefig(f'./Plots/Result Predictor k = {k}.png')
 
 def analyze_k_values(l, k_values, train_x, train_y):
     """tests the knn algorithm for different k"""   
-    for k in k_values:     
+    for k in k_values:
         alpha = softsvmpoly(l, k, train_x, train_y)
-        plot_predictor(alpha, trainX, k, 10)
-    
+        plot_predictor(alpha, train_x, k, 100)
 
 def plot_error_bar_graph(x_values, averages, yerr, title, x_label, x_scale='linear', color='b', label='error bar'):
     """plots error bar graph with the given parameters"""
@@ -149,5 +148,4 @@ if __name__ == '__main__':
     # analyze_lambda_k_values(5, [1, 10, 100], [2, 5, 8], trainX, trainy, testX, testy)
     analyze_k_values(100, [3, 5, 8], trainX, trainy)
     end = time.time()
-    plt.show()
     print(f'time_to_process in seconds {end - start}')
