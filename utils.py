@@ -11,3 +11,6 @@ def poly_kernel(x1: np.array, x2: np.array, d: int) -> int:
 
 def decision_function(x, alpha, trainX, k):
     return sum(alpha[i] * kernel(x, trainX[i], k) for i in range(len(alpha)))
+
+def gaussian_kernel(x1: np.array, x2: np.array, sigma: int) -> int:
+    return np.exp(-np.linalg.norm(x1 - x2) ** 2 / (2 * sigma ** 2))

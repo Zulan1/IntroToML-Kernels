@@ -15,8 +15,8 @@ def softsvmpoly(l: float, k: int, trainX: np.array, trainy: np.array):
     """
     m = int(trainX.shape[0])
     zeros = spmatrix([], [], [], (m, m))
-    gram_matrix = matrix([[kernel(x1, x2, k) for x1 in trainX] for x2 in trainX]) + 1e-5 * spdiag([1.0] * m)
-    H = 2 * l * matrix(sparse([[gram_matrix, zeros], [zeros, zeros]]))
+    gram_matrix = matrix([[kernel(x1, x2, k) for x1 in trainX] for x2 in trainX])
+    H = 2 * l * matrix(sparse([[gram_matrix, zeros], [zeros, zeros]])) + 1e-1 * spdiag([1.0] * 2 * m)
     u = matrix([0.0] * m + [1.0/m] * m)
     v = matrix([1.0] * m + [0.0] * m)
     Im = spmatrix(1.0, range(m), range(m))

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from softsvmpoly import softsvmpoly
-from utils import kernel, decision_function
+from utils import decision_function
 import time
 
 ROUND_DIGITS = 5
@@ -24,29 +24,8 @@ def scatter_plot(title, x_label, y_label):
 
 def predict_calculate_error(alpha, trainX, testX, testy, k):
     """predicts the testy values and calculates the error"""
-    y_preds = np.array([np.sign(decision_function(x)) for x in testX])
+    y_preds = np.array([np.sign(decision_function(x, alpha, trainX, k)) for x in testX])
     return np.mean(np.vstack(testy) != np.vstack(y_preds))
-
-def test_input_size(m: int = 200, l: int = 1, k: int = 5):
-    """tests the ssvm algorithm for a given sample size and l value"""
-    # load question 2 data
-    data = np.load('EX3q2_data.npz')
-    trainX = data['Xtrain']
-    testX = data['Xtest']
-    trainy = data['Ytrain']
-    testy = data['Ytest']
-
-    # Get a random m training examples from the training set
-    indices = np.random.permutation(trainX.shape[0])
-    _trainX = trainX[indices[:m]]
-    _trainy = trainy[indices[:m]]
-
-    w = softsvmpoly(l, k, _trainX, _trainy)
-
-    test_error = predict_calculate_error(w, trainX, testX, testy, k)
-    train_error = predict_calculate_error(w, trainX, _trainX, _trainy, k)
-
-    return test_error, train_error
 
 def k_fold_cross_validation(k_f: int, l: int, k: int, trainX: np.array, trainy: np.array):
     m, _ = trainX.shape
@@ -85,13 +64,13 @@ def analyze_lambda_k_values(k_f, l_values, k_values, train_x, train_y, test_x, t
 def plot_predictor(alpha, train_x, k, number_of_points=100):
     def normalize_index(index):
         return (2 * index / number_of_points) - 1
-    r = range(number_of_points)
-    # grid = [int(np.sign(decision_function((normalize_index(i), normalize_index(j)), alpha, train_x, k))) for i in r for j in r]
-    cmap = {1: np.array([0, 0, 255]), -1: np.array([255, 0, 0])}
+    r1 = range(number_of_points)
+    r2 = range(number_of_points)
+    cmap = {1: np.array([0, 0, 255]), -1: np.array([255, 0, 0]), 0: [255, 0, 0]}
     
     y_preds = np.zeros((number_of_points, number_of_points, 3), dtype=np.int32)
-    for i in r:
-        for j in r:
+    for i in r1:
+        for j in r2:
             pred = int(np.sign(decision_function((normalize_index(j), normalize_index(i)), alpha, train_x, k)))
             y_preds[i][j] = cmap[pred]
     plt.imshow(y_preds, extent=(-1, 1, -1, 1), origin='lower')
@@ -99,41 +78,13 @@ def plot_predictor(alpha, train_x, k, number_of_points=100):
     plt.xlabel("X1", fontsize=16)
     plt.ylabel("X2", fontsize=16)
     plt.grid(True)
-    plt.savefig(f'./Plots/Result Predictor k = {k}.png')
+    plt.savefig(f'./Plots/{number_of_points}x{number_of_points} - Result Predictor k = {k}.png')
 
 def analyze_k_values(l, k_values, train_x, train_y):
     """tests the knn algorithm for different k"""   
     for k in k_values:
         alpha = softsvmpoly(l, k, train_x, train_y)
-        plot_predictor(alpha, train_x, k, 100)
-
-def plot_error_bar_graph(x_values, averages, yerr, title, x_label, x_scale='linear', color='b', label='error bar'):
-    """plots error bar graph with the given parameters"""
-    # Plotting the graph with error bars
-    plt.errorbar(x_values, averages,
-                 yerr=yerr, fmt='-o',
-                 color=color, ecolor='gray',
-                 capsize=5, label=label,
-                 )
-
-    # Annotating each data point
-    # for i, size in enumerate(x_values):
-    #     plt.annotate(round(averages[i], ROUND_DIGITS),
-    #                 # f'High: {round(errors_above[i] + averages[i], ROUND_DIGITS)}\n'
-    #                 # f'Avg: {round(averages[i], ROUND_DIGITS)}\n'
-    #                 # f'Low: {round(averages[i] - errors_below[i], ROUND_DIGITS)}',
-    #                 (size, averages[i]),
-    #                 textcoords="offset points",
-    #                 xytext=(0, 10),
-    #                 ha='center',
-    #                 fontsize=12)
-
-    plt.title(title, fontsize=26)
-    plt.xlabel(x_label, fontsize=16)
-    plt.ylabel('Error', fontsize=16)
-    plt.xscale(x_scale)
-    plt.xticks(x_values, fontsize=12)
-    plt.grid(True)
+        plot_predictor(alpha, train_x, k, 512)
 
 if __name__ == '__main__':
     # load question 2 data
